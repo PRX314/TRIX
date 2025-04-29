@@ -48,6 +48,39 @@
             50% { transform: scale(1.05); }
             100% { transform: scale(1); }
         }
+        
+        .timer-critical {
+            color: #ef4444;
+            animation: pulse 0.5s infinite;
+        }
+        
+        .timer-warning {
+            color: #f59e0b;
+        }
+        
+        .timer-normal {
+            color: #10b981;
+        }
+        
+        .timer-disabled {
+            color: #6b7280;
+        }
+        
+        .settings-panel {
+            transition: all 0.3s ease;
+            max-height: 0;
+            overflow: hidden;
+        }
+        
+        .settings-panel.open {
+            max-height: 500px;
+        }
+        
+        .progress-ring__circle {
+            transition: stroke-dashoffset 0.35s;
+            transform: rotate(-90deg);
+            transform-origin: 50% 50%;
+        }
     </style>
 </head>
 <body class="min-h-screen bolt-bg text-white font-sans">
@@ -61,6 +94,41 @@
         <!-- Main Menu -->
         <div id="main-menu" class="flex flex-col items-center justify-center space-y-6">
             <h2 class="text-3xl font-bold mb-6 text-yellow-200">Select Game Mode</h2>
+            
+            <div class="w-full max-w-md bg-gray-800 bg-opacity-50 rounded-lg p-4 mb-6">
+                <div class="flex justify-between items-center cursor-pointer" onclick="toggleSettingsPanel()">
+                    <h3 class="text-lg font-semibold text-blue-200">
+                        <i class="fas fa-cog mr-2"></i>Game Settings
+                    </h3>
+                    <i id="settings-chevron" class="fas fa-chevron-down transition-transform"></i>
+                </div>
+                
+                <div id="settings-panel" class="settings-panel mt-2 space-y-4">
+                    <div class="flex items-center justify-between">
+                        <label class="flex items-center">
+                            <input type="checkbox" id="timer-toggle" class="mr-2 h-5 w-5 rounded">
+                            <span>Enable Timer</span>
+                        </label>
+                    </div>
+                    
+                    <div id="timer-settings" class="space-y-3">
+                        <div class="flex items-center justify-between">
+                            <label>Classic Mode Timer (sec):</label>
+                            <input type="number" id="classic-timer" min="5" max="120" value="30" class="w-20 bg-gray-700 rounded px-2 py-1 text-center">
+                        </div>
+                        
+                        <div class="flex items-center justify-between">
+                            <label>Memory Mobile Timer (sec):</label>
+                            <input type="number" id="memory-timer" min="5" max="120" value="20" class="w-20 bg-gray-700 rounded px-2 py-1 text-center">
+                        </div>
+                        
+                        <div class="flex items-center justify-between">
+                            <label>Ultimate Bolt Timer (sec):</label>
+                            <input type="number" id="ultimate-timer" min="5" max="120" value="45" class="w-20 bg-gray-700 rounded px-2 py-1 text-center">
+                        </div>
+                    </div>
+                </div>
+            </div>
             
             <button onclick="startGame('classic')" class="w-64 bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 px-6 rounded-lg shadow-lg transition-all transform hover:scale-105 flex items-center justify-center">
                 <i class="fas fa-chess-board mr-3"></i>
@@ -89,7 +157,14 @@
             <div id="standard-board-container" class="hidden">
                 <div class="flex justify-between items-center mb-6">
                     <h2 id="game-mode-title" class="text-2xl font-bold"></h2>
-                    <div class="flex space-x-4">
+                    <div class="flex items-center space-x-4">
+                        <div id="timer-display" class="flex items-center hidden">
+                            <svg id="timer-ring" width="40" height="40" class="mr-2">
+                                <circle cx="20" cy="20" r="18" fill="transparent" stroke="#374151" stroke-width="4"></circle>
+                                <circle id="timer-progress" cx="20" cy="20" r="18" fill="transparent" stroke="#10b981" stroke-width="4" stroke-dasharray="113" stroke-dashoffset="0"></circle>
+                            </svg>
+                            <span id="timer-text" class="text-xl font-mono timer-normal">00:00</span>
+                        </div>
                         <button onclick="restartGame()" class="bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-2 px-4 rounded">
                             <i class="fas fa-redo mr-2"></i>Restart
                         </button>
@@ -112,7 +187,14 @@
             <div id="ultimate-board-container" class="hidden">
                 <div class="flex justify-between items-center mb-6">
                     <h2 class="text-2xl font-bold">Ultimate Bolt Mode</h2>
-                    <div class="flex space-x-4">
+                    <div class="flex items-center space-x-4">
+                        <div id="ultimate-timer-display" class="flex items-center hidden">
+                            <svg id="ultimate-timer-ring" width="40" height="40" class="mr-2">
+                                <circle cx="20" cy="20" r="18" fill="transparent" stroke="#374151" stroke-width="4"></circle>
+                                <circle id="ultimate-timer-progress" cx="20" cy="20" r="18" fill="transparent" stroke="#10b981" stroke-width="4" stroke-dasharray="113" stroke-dashoffset="0"></circle>
+                            </svg>
+                            <span id="ultimate-timer-text" class="text-xl font-mono timer-normal">00:00</span>
+                        </div>
                         <button onclick="restartGame()" class="bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-2 px-4 rounded">
                             <i class="fas fa-redo mr-2"></i>Restart
                         </button>
@@ -150,6 +232,7 @@
                             <li>Two players (X and O) take turns</li>
                             <li>First to align three symbols wins (row, column, or diagonal)</li>
                             <li>No moves disappear - static grid like traditional game</li>
+                            <li>Optional timer puts pressure on players to think fast</li>
                         </ul>
                     </div>
                     
@@ -161,6 +244,7 @@
                             <li>Only the last 3 moves remain active for each player</li>
                             <li>Fade-out animation shows removal of oldest move</li>
                             <li>Dynamic, fast-paced gameplay that's never static</li>
+                            <li>Timer adds extra challenge to this already intense mode</li>
                         </ul>
                     </div>
                     
@@ -172,6 +256,18 @@
                             <li>When a mini-grid is won, it's locked and can't be played in</li>
                             <li>Win by getting three mini-grids in a row (like classic Tic Tac Toe)</li>
                             <li>Multi-level strategy with mini and macro gameplay</li>
+                            <li>Timer makes this complex mode even more challenging</li>
+                        </ul>
+                    </div>
+                    
+                    <div>
+                        <h4 class="text-xl font-semibold text-yellow-300 mb-2">⏱️ Timer System</h4>
+                        <ul class="list-disc pl-5 space-y-1">
+                            <li>Configurable timer for each game mode</li>
+                            <li>Visual countdown with progress ring</li>
+                            <li>Color changes as time runs low</li>
+                            <li>When time runs out, the current player loses their turn</li>
+                            <li>Can be disabled in settings if preferred</li>
                         </ul>
                     </div>
                 </div>
@@ -198,6 +294,15 @@
         let ultimateCurrentPlayer = 'X';
         let ultimateGameActive = true;
         
+        // Timer variables
+        let timerEnabled = false;
+        let timerInterval;
+        let timeLeft = 0;
+        let maxTime = 30;
+        let ultimateTimerInterval;
+        let ultimateTimeLeft = 0;
+        let ultimateMaxTime = 45;
+        
         // DOM elements
         const mainMenu = document.getElementById('main-menu');
         const gameContainer = document.getElementById('game-container');
@@ -209,6 +314,30 @@
         const ultimateBoard = document.getElementById('ultimate-board');
         const ultimateStatus = document.getElementById('ultimate-status');
         const rulesModal = document.getElementById('rules-modal');
+        const timerDisplay = document.getElementById('timer-display');
+        const timerText = document.getElementById('timer-text');
+        const timerProgress = document.getElementById('timer-progress');
+        const ultimateTimerDisplay = document.getElementById('ultimate-timer-display');
+        const ultimateTimerText = document.getElementById('ultimate-timer-text');
+        const ultimateTimerProgress = document.getElementById('ultimate-timer-progress');
+        const timerToggle = document.getElementById('timer-toggle');
+        const classicTimerInput = document.getElementById('classic-timer');
+        const memoryTimerInput = document.getElementById('memory-timer');
+        const ultimateTimerInput = document.getElementById('ultimate-timer');
+        const timerSettings = document.getElementById('timer-settings');
+        const settingsPanel = document.getElementById('settings-panel');
+        const settingsChevron = document.getElementById('settings-chevron');
+        
+        // Initialize settings
+        timerToggle.addEventListener('change', function() {
+            timerEnabled = this.checked;
+            timerSettings.style.display = timerEnabled ? 'block' : 'none';
+        });
+        
+        function toggleSettingsPanel() {
+            settingsPanel.classList.toggle('open');
+            settingsChevron.classList.toggle('rotate-180');
+        }
         
         // Start a new game
         function startGame(mode) {
@@ -216,14 +345,47 @@
             mainMenu.classList.add('hidden');
             gameContainer.classList.remove('hidden');
             
+            // Set timer values based on settings
+            if (timerToggle.checked) {
+                timerEnabled = true;
+                
+                switch(mode) {
+                    case 'classic':
+                        maxTime = parseInt(classicTimerInput.value);
+                        break;
+                    case 'memory':
+                        maxTime = parseInt(memoryTimerInput.value);
+                        break;
+                    case 'ultimate':
+                        ultimateMaxTime = parseInt(ultimateTimerInput.value);
+                        break;
+                }
+            } else {
+                timerEnabled = false;
+            }
+            
             if (mode === 'ultimate') {
                 standardBoardContainer.classList.add('hidden');
                 ultimateBoardContainer.classList.remove('hidden');
                 initializeUltimateBoard();
+                
+                if (timerEnabled) {
+                    ultimateTimerDisplay.classList.remove('hidden');
+                    startUltimateTimer();
+                } else {
+                    ultimateTimerDisplay.classList.add('hidden');
+                }
             } else {
                 standardBoardContainer.classList.remove('hidden');
                 ultimateBoardContainer.classList.add('hidden');
                 initializeStandardBoard();
+                
+                if (timerEnabled) {
+                    timerDisplay.classList.remove('hidden');
+                    startTimer();
+                } else {
+                    timerDisplay.classList.add('hidden');
+                }
                 
                 if (mode === 'classic') {
                     gameModeTitle.textContent = 'Classic Mode';
@@ -231,6 +393,119 @@
                     gameModeTitle.textContent = 'Memory Mobile';
                 }
             }
+        }
+        
+        // Timer functions
+        function startTimer() {
+            clearInterval(timerInterval);
+            timeLeft = maxTime;
+            updateTimerDisplay();
+            
+            timerInterval = setInterval(() => {
+                timeLeft--;
+                updateTimerDisplay();
+                
+                if (timeLeft <= 0) {
+                    clearInterval(timerInterval);
+                    timerText.classList.remove('timer-warning');
+                    timerText.classList.add('timer-critical');
+                    
+                    // Time's up! Switch player
+                    if (gameActive) {
+                        currentPlayer = currentPlayer === 'X' ? 'O' : 'X';
+                        updateStatus(`${currentPlayer}'s turn (timeout!)`);
+                        startTimer(); // Restart timer for next player
+                    }
+                }
+            }, 1000);
+        }
+        
+        function startUltimateTimer() {
+            clearInterval(ultimateTimerInterval);
+            ultimateTimeLeft = ultimateMaxTime;
+            updateUltimateTimerDisplay();
+            
+            ultimateTimerInterval = setInterval(() => {
+                ultimateTimeLeft--;
+                updateUltimateTimerDisplay();
+                
+                if (ultimateTimeLeft <= 0) {
+                    clearInterval(ultimateTimerInterval);
+                    ultimateTimerText.classList.remove('timer-warning');
+                    ultimateTimerText.classList.add('timer-critical');
+                    
+                    // Time's up! Switch player
+                    if (ultimateGameActive) {
+                        ultimateCurrentPlayer = ultimateCurrentPlayer === 'X' ? 'O' : 'X';
+                        updateUltimateStatus(`${ultimateCurrentPlayer}'s turn (timeout!)`);
+                        startUltimateTimer(); // Restart timer for next player
+                    }
+                }
+            }, 1000);
+        }
+        
+        function updateTimerDisplay() {
+            const minutes = Math.floor(timeLeft / 60);
+            const seconds = timeLeft % 60;
+            timerText.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+            
+            // Update progress ring
+            const circumference = 2 * Math.PI * 18;
+            const offset = circumference - (timeLeft / maxTime) * circumference;
+            timerProgress.style.strokeDashoffset = offset;
+            
+            // Update color based on time left
+            if (timeLeft <= maxTime * 0.2) {
+                timerText.classList.remove('timer-normal', 'timer-warning');
+                timerText.classList.add('timer-critical');
+                timerProgress.style.stroke = '#ef4444';
+            } else if (timeLeft <= maxTime * 0.5) {
+                timerText.classList.remove('timer-normal', 'timer-critical');
+                timerText.classList.add('timer-warning');
+                timerProgress.style.stroke = '#f59e0b';
+            } else {
+                timerText.classList.remove('timer-warning', 'timer-critical');
+                timerText.classList.add('timer-normal');
+                timerProgress.style.stroke = '#10b981';
+            }
+        }
+        
+        function updateUltimateTimerDisplay() {
+            const minutes = Math.floor(ultimateTimeLeft / 60);
+            const seconds = ultimateTimeLeft % 60;
+            ultimateTimerText.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+            
+            // Update progress ring
+            const circumference = 2 * Math.PI * 18;
+            const offset = circumference - (ultimateTimeLeft / ultimateMaxTime) * circumference;
+            ultimateTimerProgress.style.strokeDashoffset = offset;
+            
+            // Update color based on time left
+            if (ultimateTimeLeft <= ultimateMaxTime * 0.2) {
+                ultimateTimerText.classList.remove('timer-normal', 'timer-warning');
+                ultimateTimerText.classList.add('timer-critical');
+                ultimateTimerProgress.style.stroke = '#ef4444';
+            } else if (ultimateTimeLeft <= ultimateMaxTime * 0.5) {
+                ultimateTimerText.classList.remove('timer-normal', 'timer-critical');
+                ultimateTimerText.classList.add('timer-warning');
+                ultimateTimerProgress.style.stroke = '#f59e0b';
+            } else {
+                ultimateTimerText.classList.remove('timer-warning', 'timer-critical');
+                ultimateTimerText.classList.add('timer-normal');
+                ultimateTimerProgress.style.stroke = '#10b981';
+            }
+        }
+        
+        function resetTimer() {
+            clearInterval(timerInterval);
+            timerText.classList.remove('timer-critical', 'timer-warning');
+            timerText.classList.add('timer-normal');
+        }
+        
+        function resetUltimateTimer() {
+            clearInterval(ultimateTimerInterval);
+            ultimateTimerText.classList.remove('timer-critical', 'timer-warning');
+            ultimateTimerText.classList.add('timer-normal');
         }
         
         // Initialize standard 3x3 board
@@ -251,6 +526,10 @@
             }
             
             updateStatus(`${currentPlayer}'s turn`);
+            
+            if (timerEnabled) {
+                startTimer();
+            }
         }
         
         // Initialize ultimate 9x9 board
@@ -289,6 +568,10 @@
             }
             
             updateUltimateStatus(`${ultimateCurrentPlayer}'s turn - Select any board to start`);
+            
+            if (timerEnabled) {
+                startUltimateTimer();
+            }
         }
         
         // Handle standard cell click
@@ -325,6 +608,10 @@
             if (gameActive) {
                 currentPlayer = currentPlayer === 'X' ? 'O' : 'X';
                 updateStatus(`${currentPlayer}'s turn`);
+                
+                if (timerEnabled) {
+                    startTimer(); // Reset timer for next player
+                }
             }
         }
         
@@ -377,6 +664,10 @@
                             }
                         });
                     }
+                    
+                    if (timerEnabled) {
+                        startUltimateTimer(); // Reset timer for next player
+                    }
                 }
             }
         }
@@ -395,6 +686,7 @@
                     gameActive = false;
                     highlightWinningCells(pattern);
                     updateStatus(`${board[a]} wins!`);
+                    resetTimer();
                     return;
                 }
             }
@@ -402,6 +694,7 @@
             if (!board.includes(null)) {
                 gameActive = false;
                 updateStatus("Game ended in a draw!");
+                resetTimer();
             }
         }
         
@@ -458,6 +751,7 @@
                     ultimateGameActive = false;
                     highlightWinningUltimateBoards(pattern);
                     updateUltimateStatus(`${ultimateWinners[a]} wins the ultimate game!`);
+                    resetUltimateTimer();
                     return;
                 }
             }
@@ -466,6 +760,7 @@
             if (!ultimateWinners.includes(null) && ultimateGameActive) {
                 ultimateGameActive = false;
                 updateUltimateStatus("Ultimate game ended in a draw!");
+                resetUltimateTimer();
             }
         }
         
@@ -506,6 +801,8 @@
         
         // Return to main menu
         function backToMenu() {
+            resetTimer();
+            resetUltimateTimer();
             gameContainer.classList.add('hidden');
             mainMenu.classList.remove('hidden');
         }
