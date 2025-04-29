@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TRIX - Bolt Edition</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @keyframes fadeOut {
+            0% { opacity: 1; }
+            100% { opacity: 0; }
+        }
+        
+        .fade-out {
+            animation: fadeOut 1s forwards;
+        }
+        
+        .cell-highlight {
+            box-shadow: 0 0 20px 5px rgba(255, 215, 0, 0.7);
+            transform: scale(1.05);
+            transition: all 0.3s ease;
+        }
+        
+        .mini-board {
+            transition: all 0.3s ease;
+        }
+        
+        .mini-board.won {
+            filter: brightness(0.8);
+            pointer-events: none;
+        }
+        
+        .active-board {
+            border: 3px solid #3b82f6;
+        }
+        
+        .bolt-bg {
+            background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 50%, #93c5fd 100%);
+        }
+        
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+    </style>
+</head>
+<body class="min-h-screen bolt-bg text-white font-sans">
+    <div class="container mx-auto px-4 py-8">
+        <!-- Header -->
+        <header class="text-center mb-12">
+            <h1 class="text-5xl font-bold mb-2 text-yellow-300 pulse">TRIX <span class="text-blue-300">Bolt Edition</span></h1>
+            <p class="text-xl text-blue-100">Three electrifying ways to play Tic Tac Toe!</p>
+        </header>
+        
+        <!-- Main Menu -->
+        <div id="main-menu" class="flex flex-col items-center justify-center space-y-6">
+            <h2 class="text-3xl font-bold mb-6 text-yellow-200">Select Game Mode</h2>
+            
+            <button onclick="startGame('classic')" class="w-64 bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 px-6 rounded-lg shadow-lg transition-all transform hover:scale-105 flex items-center justify-center">
+                <i class="fas fa-chess-board mr-3"></i>
+                Classic Mode
+            </button>
+            
+            <button onclick="startGame('memory')" class="w-64 bg-purple-600 hover:bg-purple-700 text-white font-bold py-4 px-6 rounded-lg shadow-lg transition-all transform hover:scale-105 flex items-center justify-center">
+                <i class="fas fa-brain mr-3"></i>
+                Memory Mobile
+            </button>
+            
+            <button onclick="startGame('ultimate')" class="w-64 bg-red-600 hover:bg-red-700 text-white font-bold py-4 px-6 rounded-lg shadow-lg transition-all transform hover:scale-105 flex items-center justify-center">
+                <i class="fas fa-bolt mr-3"></i>
+                Ultimate Bolt
+            </button>
+            
+            <div class="mt-8 text-center text-blue-100">
+                <p class="mb-2"><i class="fas fa-info-circle mr-2"></i>Each mode has unique rules!</p>
+                <button onclick="showRules()" class="text-yellow-300 hover:underline">View Game Rules</button>
+            </div>
+        </div>
+        
+        <!-- Game Boards -->
+        <div id="game-container" class="hidden">
+            <!-- Classic and Memory Mobile Board -->
+            <div id="standard-board-container" class="hidden">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 id="game-mode-title" class="text-2xl font-bold"></h2>
+                    <div class="flex space-x-4">
+                        <button onclick="restartGame()" class="bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-2 px-4 rounded">
+                            <i class="fas fa-redo mr-2"></i>Restart
+                        </button>
+                        <button onclick="backToMenu()" class="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded">
+                            <i class="fas fa-home mr-2"></i>Menu
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="flex flex-col items-center">
+                    <div id="status-message" class="text-xl font-semibold mb-4 text-yellow-300"></div>
+                    
+                    <div id="game-board" class="grid grid-cols-3 gap-2 bg-blue-900 p-4 rounded-lg shadow-2xl">
+                        <!-- Cells will be generated here -->
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Ultimate Bolt Board -->
+            <div id="ultimate-board-container" class="hidden">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-2xl font-bold">Ultimate Bolt Mode</h2>
+                    <div class="flex space-x-4">
+                        <button onclick="restartGame()" class="bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-2 px-4 rounded">
+                            <i class="fas fa-redo mr-2"></i>Restart
+                        </button>
+                        <button onclick="backToMenu()" class="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded">
+                            <i class="fas fa-home mr-2"></i>Menu
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="flex flex-col items-center">
+                    <div id="ultimate-status" class="text-xl font-semibold mb-4 text-yellow-300"></div>
+                    
+                    <div id="ultimate-board" class="grid grid-cols-3 gap-2 bg-blue-900 p-4 rounded-lg shadow-2xl">
+                        <!-- Mini boards will be generated here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Rules Modal -->
+        <div id="rules-modal" class="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center hidden z-50">
+            <div class="bg-gray-800 rounded-lg p-6 max-w-2xl max-h-[80vh] overflow-y-auto">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-2xl font-bold text-yellow-300">Game Rules</h3>
+                    <button onclick="hideRules()" class="text-gray-400 hover:text-white">
+                        <i class="fas fa-times text-xl"></i>
+                    </button>
+                </div>
+                
+                <div class="space-y-6">
+                    <div>
+                        <h4 class="text-xl font-semibold text-blue-300 mb-2">1️⃣ Classic Mode</h4>
+                        <ul class="list-disc pl-5 space-y-1">
+                            <li>Standard 3x3 Tic Tac Toe rules</li>
+                            <li>Two players (X and O) take turns</li>
+                            <li>First to align three symbols wins (row, column, or diagonal)</li>
+                            <li>No moves disappear - static grid like traditional game</li>
+                        </ul>
+                    </div>
+                    
+                    <div>
+                        <h4 class="text-xl font-semibold text-purple-300 mb-2">2️⃣ Memory Mobile</h4>
+                        <ul class="list-disc pl-5 space-y-1">
+                            <li>Starts as normal 3x3 game</li>
+                            <li>After the 4th move, the oldest move is marked and removed</li>
+                            <li>Only the last 3 moves remain active for each player</li>
+                            <li>Fade-out animation shows removal of oldest move</li>
+                            <li>Dynamic, fast-paced gameplay that's never static</li>
+                        </ul>
+                    </div>
+                    
+                    <div>
+                        <h4 class="text-xl font-semibold text-red-300 mb-2">3️⃣ Ultimate Bolt</h4>
+                        <ul class="list-disc pl-5 space-y-1">
+                            <li>9x9 grid composed of 9 mini 3x3 grids</li>
+                            <li>When you make a move in a mini-grid, opponent must play in corresponding mini-grid</li>
+                            <li>When a mini-grid is won, it's locked and can't be played in</li>
+                            <li>Win by getting three mini-grids in a row (like classic Tic Tac Toe)</li>
+                            <li>Multi-level strategy with mini and macro gameplay</li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <div class="mt-6 text-center">
+                    <button onclick="hideRules()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded">
+                        Got It!
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Game state variables
+        let currentGameMode = '';
+        let board = Array(9).fill(null);
+        let currentPlayer = 'X';
+        let gameActive = true;
+        let moveHistory = { X: [], O: [] };
+        let ultimateBoards = Array(9).fill(null).map(() => Array(9).fill(null));
+        let ultimateActiveBoard = null;
+        let ultimateWinners = Array(9).fill(null);
+        let ultimateCurrentPlayer = 'X';
+        let ultimateGameActive = true;
+        
+        // DOM elements
+        const mainMenu = document.getElementById('main-menu');
+        const gameContainer = document.getElementById('game-container');
+        const standardBoardContainer = document.getElementById('standard-board-container');
+        const ultimateBoardContainer = document.getElementById('ultimate-board-container');
+        const gameBoard = document.getElementById('game-board');
+        const statusMessage = document.getElementById('status-message');
+        const gameModeTitle = document.getElementById('game-mode-title');
+        const ultimateBoard = document.getElementById('ultimate-board');
+        const ultimateStatus = document.getElementById('ultimate-status');
+        const rulesModal = document.getElementById('rules-modal');
+        
+        // Start a new game
+        function startGame(mode) {
+            currentGameMode = mode;
+            mainMenu.classList.add('hidden');
+            gameContainer.classList.remove('hidden');
+            
+            if (mode === 'ultimate') {
+                standardBoardContainer.classList.add('hidden');
+                ultimateBoardContainer.classList.remove('hidden');
+                initializeUltimateBoard();
+            } else {
+                standardBoardContainer.classList.remove('hidden');
+                ultimateBoardContainer.classList.add('hidden');
+                initializeStandardBoard();
+                
+                if (mode === 'classic') {
+                    gameModeTitle.textContent = 'Classic Mode';
+                } else {
+                    gameModeTitle.textContent = 'Memory Mobile';
+                }
+            }
+        }
+        
+        // Initialize standard 3x3 board
+        function initializeStandardBoard() {
+            board = Array(9).fill(null);
+            currentPlayer = 'X';
+            gameActive = true;
+            moveHistory = { X: [], O: [] };
+            
+            gameBoard.innerHTML = '';
+            
+            for (let i = 0; i < 9; i++) {
+                const cell = document.createElement('div');
+                cell.className = 'w-20 h-20 bg-blue-800 flex items-center justify-center text-4xl font-bold cursor-pointer hover:bg-blue-700 transition-colors rounded';
+                cell.dataset.index = i;
+                cell.addEventListener('click', () => handleCellClick(i));
+                gameBoard.appendChild(cell);
+            }
+            
+            updateStatus(`${currentPlayer}'s turn`);
+        }
+        
+        // Initialize ultimate 9x9 board
+        function initializeUltimateBoard() {
+            ultimateBoards = Array(9).fill(null).map(() => Array(9).fill(null));
+            ultimateActiveBoard = null;
+            ultimateWinners = Array(9).fill(null);
+            ultimateCurrentPlayer = 'X';
+            ultimateGameActive = true;
+            
+            ultimateBoard.innerHTML = '';
+            
+            for (let i = 0; i < 9; i++) {
+                const miniBoard = document.createElement('div');
+                miniBoard.className = 'mini-board p-1 bg-blue-800 rounded grid grid-cols-3 gap-1';
+                if (ultimateWinners[i]) {
+                    miniBoard.classList.add('won');
+                }
+                miniBoard.dataset.boardIndex = i;
+                
+                for (let j = 0; j < 9; j++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'w-8 h-8 bg-blue-700 flex items-center justify-center text-xs font-bold cursor-pointer hover:bg-blue-600 transition-colors rounded';
+                    cell.dataset.cellIndex = j;
+                    cell.dataset.boardIndex = i;
+                    cell.addEventListener('click', () => handleUltimateCellClick(i, j));
+                    
+                    if (ultimateBoards[i][j]) {
+                        cell.textContent = ultimateBoards[i][j];
+                    }
+                    
+                    miniBoard.appendChild(cell);
+                }
+                
+                ultimateBoard.appendChild(miniBoard);
+            }
+            
+            updateUltimateStatus(`${ultimateCurrentPlayer}'s turn - Select any board to start`);
+        }
+        
+        // Handle standard cell click
+        function handleCellClick(index) {
+            if (!gameActive || board[index]) return;
+            
+            board[index] = currentPlayer;
+            moveHistory[currentPlayer].push(index);
+            
+            const cell = gameBoard.children[index];
+            cell.textContent = currentPlayer;
+            cell.classList.add('cell-highlight');
+            
+            setTimeout(() => {
+                cell.classList.remove('cell-highlight');
+            }, 300);
+            
+            // For Memory Mobile mode, handle move removal
+            if (currentGameMode === 'memory' && moveHistory[currentPlayer].length > 3) {
+                const oldestMove = moveHistory[currentPlayer].shift();
+                board[oldestMove] = null;
+                
+                const oldCell = gameBoard.children[oldestMove];
+                oldCell.classList.add('fade-out');
+                
+                setTimeout(() => {
+                    oldCell.textContent = '';
+                    oldCell.classList.remove('fade-out');
+                }, 1000);
+            }
+            
+            checkStandardGameResult();
+            
+            if (gameActive) {
+                currentPlayer = currentPlayer === 'X' ? 'O' : 'X';
+                updateStatus(`${currentPlayer}'s turn`);
+            }
+        }
+        
+        // Handle ultimate cell click
+        function handleUltimateCellClick(boardIndex, cellIndex) {
+            if (!ultimateGameActive || ultimateWinners[boardIndex]) return;
+            
+            // If this is the first move or the active board is set
+            if (ultimateActiveBoard === null || ultimateActiveBoard === boardIndex) {
+                if (ultimateBoards[boardIndex][cellIndex]) return;
+                
+                // Make the move
+                ultimateBoards[boardIndex][cellIndex] = ultimateCurrentPlayer;
+                
+                // Update the UI
+                const miniBoard = ultimateBoard.children[boardIndex];
+                const cell = miniBoard.children[cellIndex];
+                cell.textContent = ultimateCurrentPlayer;
+                cell.classList.add('cell-highlight');
+                
+                setTimeout(() => {
+                    cell.classList.remove('cell-highlight');
+                }, 300);
+                
+                // Check if this move won the mini-board
+                checkMiniBoardWinner(boardIndex);
+                
+                // Check if the ultimate game is won
+                checkUltimateGameResult();
+                
+                if (ultimateGameActive) {
+                    // Set next active board based on the cell index
+                    ultimateActiveBoard = ultimateWinners[cellIndex] ? null : cellIndex;
+                    
+                    // Switch player
+                    ultimateCurrentPlayer = ultimateCurrentPlayer === 'X' ? 'O' : 'X';
+                    
+                    // Update status
+                    if (ultimateActiveBoard === null) {
+                        updateUltimateStatus(`${ultimateCurrentPlayer}'s turn - Select any available board`);
+                    } else {
+                        updateUltimateStatus(`${ultimateCurrentPlayer}'s turn - Play in board ${ultimateActiveBoard + 1}`);
+                        
+                        // Highlight the active board
+                        Array.from(ultimateBoard.children).forEach((board, idx) => {
+                            if (idx === ultimateActiveBoard && !ultimateWinners[idx]) {
+                                board.classList.add('active-board');
+                            } else {
+                                board.classList.remove('active-board');
+                            }
+                        });
+                    }
+                }
+            }
+        }
+        
+        // Check standard game result
+        function checkStandardGameResult() {
+            const winPatterns = [
+                [0, 1, 2], [3, 4, 5], [6, 7, 8], // rows
+                [0, 3, 6], [1, 4, 7], [2, 5, 8], // columns
+                [0, 4, 8], [2, 4, 6]             // diagonals
+            ];
+            
+            for (const pattern of winPatterns) {
+                const [a, b, c] = pattern;
+                if (board[a] && board[a] === board[b] && board[a] === board[c]) {
+                    gameActive = false;
+                    highlightWinningCells(pattern);
+                    updateStatus(`${board[a]} wins!`);
+                    return;
+                }
+            }
+            
+            if (!board.includes(null)) {
+                gameActive = false;
+                updateStatus("Game ended in a draw!");
+            }
+        }
+        
+        // Check mini-board winner
+        function checkMiniBoardWinner(boardIndex) {
+            const miniBoard = ultimateBoards[boardIndex];
+            const winPatterns = [
+                [0, 1, 2], [3, 4, 5], [6, 7, 8], // rows
+                [0, 3, 6], [1, 4, 7], [2, 5, 8], // columns
+                [0, 4, 8], [2, 4, 6]             // diagonals
+            ];
+            
+            for (const pattern of winPatterns) {
+                const [a, b, c] = pattern;
+                if (miniBoard[a] && miniBoard[a] === miniBoard[b] && miniBoard[a] === miniBoard[c]) {
+                    ultimateWinners[boardIndex] = miniBoard[a];
+                    
+                    // Update UI
+                    const boardElement = ultimateBoard.children[boardIndex];
+                    boardElement.classList.add('won');
+                    
+                    // Mark all cells with the winner's symbol
+                    Array.from(boardElement.children).forEach(cell => {
+                        cell.textContent = miniBoard[a];
+                        cell.classList.add('bg-opacity-50');
+                    });
+                    
+                    return;
+                }
+            }
+            
+            // Check for draw in mini-board
+            if (!miniBoard.includes(null) && !ultimateWinners[boardIndex]) {
+                ultimateWinners[boardIndex] = 'D'; // D for draw
+                const boardElement = ultimateBoard.children[boardIndex];
+                boardElement.classList.add('won');
+            }
+        }
+        
+        // Check ultimate game result
+        function checkUltimateGameResult() {
+            const winPatterns = [
+                [0, 1, 2], [3, 4, 5], [6, 7, 8], // rows
+                [0, 3, 6], [1, 4, 7], [2, 5, 8], // columns
+                [0, 4, 8], [2, 4, 6]             // diagonals
+            ];
+            
+            for (const pattern of winPatterns) {
+                const [a, b, c] = pattern;
+                if (ultimateWinners[a] && ultimateWinners[a] !== 'D' && 
+                    ultimateWinners[a] === ultimateWinners[b] && 
+                    ultimateWinners[a] === ultimateWinners[c]) {
+                    
+                    ultimateGameActive = false;
+                    highlightWinningUltimateBoards(pattern);
+                    updateUltimateStatus(`${ultimateWinners[a]} wins the ultimate game!`);
+                    return;
+                }
+            }
+            
+            // Check for ultimate draw
+            if (!ultimateWinners.includes(null) && ultimateGameActive) {
+                ultimateGameActive = false;
+                updateUltimateStatus("Ultimate game ended in a draw!");
+            }
+        }
+        
+        // Highlight winning cells in standard game
+        function highlightWinningCells(cells) {
+            cells.forEach(index => {
+                const cell = gameBoard.children[index];
+                cell.classList.add('bg-green-500', 'text-white');
+            });
+        }
+        
+        // Highlight winning boards in ultimate game
+        function highlightWinningUltimateBoards(boards) {
+            boards.forEach(index => {
+                const board = ultimateBoard.children[index];
+                board.classList.add('bg-green-500');
+            });
+        }
+        
+        // Update standard game status
+        function updateStatus(message) {
+            statusMessage.textContent = message;
+        }
+        
+        // Update ultimate game status
+        function updateUltimateStatus(message) {
+            ultimateStatus.textContent = message;
+        }
+        
+        // Restart current game
+        function restartGame() {
+            if (currentGameMode === 'ultimate') {
+                initializeUltimateBoard();
+            } else {
+                initializeStandardBoard();
+            }
+        }
+        
+        // Return to main menu
+        function backToMenu() {
+            gameContainer.classList.add('hidden');
+            mainMenu.classList.remove('hidden');
+        }
+        
+        // Show rules modal
+        function showRules() {
+            rulesModal.classList.remove('hidden');
+        }
+        
+        // Hide rules modal
+        function hideRules() {
+            rulesModal.classList.add('hidden');
+        }
+    </script>
+</body>
+</html>
